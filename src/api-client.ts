@@ -78,6 +78,7 @@ export interface DNFirewallRule {
   protocol: string;
   port?: string;
   allowedRoleID?: string;
+  allowedTag?: string;
   description?: string;
 }
 
@@ -85,6 +86,7 @@ export interface DNFirewallRuleInput {
   protocol: string;
   port?: string;
   allowedRoleID?: string;
+  allowedTag?: string;
   description?: string;
 }
 
@@ -116,6 +118,21 @@ export interface DNRouteCreate {
   enabled?: boolean;
 }
 
+export interface DNTag {
+  id: string;
+  key: string;
+  value: string;
+  description?: string;
+  createdAt: string;
+  modifiedAt: string;
+}
+
+export interface DNTagCreate {
+  key: string;
+  value: string;
+  description?: string;
+}
+
 export interface DNAuditLogEntry {
   id: string;
   actorType: string;
@@ -127,6 +144,18 @@ export interface DNAuditLogEntry {
   targetName: string;
   details?: Record<string, unknown>;
   createdAt: string;
+}
+
+export interface DNDownloads {
+  dnclient: DNDownloadInfo[];
+  mobile?: DNDownloadInfo[];
+}
+
+export interface DNDownloadInfo {
+  version: string;
+  platform: string;
+  architecture: string;
+  url: string;
 }
 
 export class DefinedAPIError extends Error {
@@ -163,7 +192,7 @@ export class DefinedAPIClient {
     body?: unknown,
     queryParams?: Record<string, string | undefined>
   ): Promise<T> {
-    const url = new URL(`/v2${path}`, this.baseUrl);
+    const url = new URL(`/v1${path}`, this.baseUrl);
 
     if (queryParams) {
       for (const [key, value] of Object.entries(queryParams)) {
@@ -373,6 +402,36 @@ export class DefinedAPIClient {
     await this.request("DELETE", `/routes/${routeID}`);
   }
 
+  // ─── Tags ───────────────────────────────────────────────────
+
+  async listTags(
+    pagination?: PaginationParams
+  ): Promise<PaginatedResponse<DNTag>> {
+    return this.request("GET", "/tags", undefined, {
+      cursor: pagination?.cursor,
+      pageSize: pagination?.pageSize?.toString(),
+    });
+  }
+
+  async getTag(tagID: string): Promise<SingleResponse<DNTag>> {
+    return this.request("GET", `/tags/${tagID}`);
+  }
+
+  async createTag(data: DNTagCreate): Promise<SingleResponse<DNTag>> {
+    return this.request("POST", "/tags", data);
+  }
+
+  async updateTag(
+    tagID: string,
+    data: Partial<DNTagCreate>
+  ): Promise<SingleResponse<DNTag>> {
+    return this.request("PUT", `/tags/${tagID}`, data);
+  }
+
+  async deleteTag(tagID: string): Promise<void> {
+    await this.request("DELETE", `/tags/${tagID}`);
+  }
+
   // ─── Audit Logs ────────────────────────────────────────────
 
   async listAuditLogs(
@@ -391,5 +450,11 @@ export class DefinedAPIClient {
       cursor: params?.cursor,
       pageSize: params?.pageSize?.toString(),
     });
+  }
+
+  // ─── Downloads ─────────────────────────────────────────────
+
+  async listDownloads(): Promise<SingleResponse<DNDownloads>> {
+    return this.request("GET", "/downloads");
   }
 }

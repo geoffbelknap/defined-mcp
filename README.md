@@ -6,7 +6,7 @@ Built for [OpenClaw](https://docs.openclaw.ai/) and any MCP-compatible AI agent 
 
 ## Features
 
-### Tools (22 operations)
+### Tools (29 operations)
 
 **Network Management**
 - `list-networks` — List all Nebula overlay networks
@@ -32,7 +32,14 @@ Built for [OpenClaw](https://docs.openclaw.ai/) and any MCP-compatible AI agent 
 - `update-role` — Update role configuration
 - `delete-role` — Remove a role
 - `get-firewall-rules` — Get inbound firewall rules for a role
-- `update-firewall-rules` — Replace firewall rules for a role
+- `update-firewall-rules` — Replace firewall rules for a role (supports role-based and tag-based rules)
+
+**Tags**
+- `list-tags` — List all tags (key:value pairs for fine-grained access control)
+- `get-tag` — Get tag details
+- `create-tag` — Create a new tag (e.g. `env:production`, `region:us-east`)
+- `update-tag` — Update a tag
+- `delete-tag` — Remove a tag
 
 **Routes (Unsafe Routes)**
 - `list-routes` — List routes extending access to non-overlay subnets
@@ -42,6 +49,9 @@ Built for [OpenClaw](https://docs.openclaw.ai/) and any MCP-compatible AI agent 
 
 **Audit & Compliance**
 - `list-audit-logs` — Search audit logs by actor, action, or target
+
+**Downloads**
+- `list-downloads` — List available DNClient software downloads for all platforms
 
 ### Resources
 
@@ -75,8 +85,9 @@ Built for [OpenClaw](https://docs.openclaw.ai/) and any MCP-compatible AI agent 
    - `hosts:enroll` — Generate enrollment codes
    - `hosts:block` — Block/unblock hosts
    - `roles:create`, `roles:read`, `roles:update`, `roles:delete` — Manage roles
+   - `tags:create`, `tags:read`, `tags:update`, `tags:delete` — Manage tags
    - `routes:create`, `routes:read`, `routes:delete` — Manage routes
-   - `audit-logs:read` — View audit logs
+   - `auditLogs:list` — View audit logs
 
 ### Install
 

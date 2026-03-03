@@ -16,6 +16,12 @@ const firewallRuleSchema = z.object({
     .describe(
       "Role ID that is allowed access. If omitted, allows access from any role."
     ),
+  allowedTag: z
+    .string()
+    .optional()
+    .describe(
+      "Tag (key:value) that is allowed access (e.g. 'env:production'). Alternative to allowedRoleID for tag-based rules."
+    ),
   description: z
     .string()
     .optional()

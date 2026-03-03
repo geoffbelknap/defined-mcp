@@ -10,7 +10,9 @@ import {
   registerEnrollmentTools,
   registerRoleTools,
   registerRouteTools,
+  registerTagTools,
   registerAuditLogTools,
+  registerDownloadTools,
 } from "./tools/index.js";
 import { registerPrompts } from "./prompts.js";
 import { registerResources } from "./resources.js";
@@ -30,7 +32,9 @@ async function main() {
   registerEnrollmentTools(server, api);
   registerRoleTools(server, api);
   registerRouteTools(server, api);
+  registerTagTools(server, api);
   registerAuditLogTools(server, api);
+  registerDownloadTools(server, api);
 
   // Register prompts
   registerPrompts(server);
