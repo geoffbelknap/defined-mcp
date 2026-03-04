@@ -158,16 +158,21 @@ export interface DNDownloadInfo {
   url: string;
 }
 
+export interface APIErrorItem {
+  code: string;
+  message: string;
+}
+
 export class DefinedAPIError extends Error {
   public statusCode: number;
   public requestId?: string;
-  public errors?: Array<{ code: string; message: string }>;
+  public errors?: APIErrorItem[];
 
   constructor(
     message: string,
     statusCode: number,
     requestId?: string,
-    errors?: Array<{ code: string; message: string }>
+    errors?: APIErrorItem[]
   ) {
     super(message);
     this.name = "DefinedAPIError";
@@ -220,7 +225,7 @@ export class DefinedAPIClient {
     const requestId = response.headers.get("x-request-id") ?? undefined;
 
     if (!response.ok) {
-      let errorBody: any;
+      let errorBody: unknown;
       try {
         errorBody = await response.json();
       } catch {
@@ -231,7 +236,9 @@ export class DefinedAPIClient {
         );
       }
 
-      const errors = errorBody?.errors;
+      const errorObj =
+        errorBody !== null && typeof errorBody === "object" ? errorBody : {};
+      const errors = (errorObj as { errors?: APIErrorItem[] }).errors;
       const message =
         errors?.[0]?.message ??
         `API request failed with status ${response.status}`;
@@ -257,7 +264,7 @@ export class DefinedAPIClient {
   }
 
   async getNetwork(networkID: string): Promise<SingleResponse<DNNetwork>> {
-    return this.request("GET", `/networks/${networkID}`);
+    return this.request("GET", `/networks/${encodeURIComponent(networkID)}`);
   }
 
   // ─── Hosts ─────────────────────────────────────────────────
@@ -287,7 +294,7 @@ export class DefinedAPIClient {
   }
 
   async getHost(hostID: string): Promise<SingleResponse<DNHost>> {
-    return this.request("GET", `/hosts/${hostID}`);
+    return this.request("GET", `/hosts/${encodeURIComponent(hostID)}`);
   }
 
   async createHost(data: DNHostCreate): Promise<SingleResponse<DNHost>> {
@@ -298,19 +305,19 @@ export class DefinedAPIClient {
     hostID: string,
     data: Partial<Pick<DNHost, "name" | "staticAddresses" | "listenPort" | "roleID" | "tags">>
   ): Promise<SingleResponse<DNHost>> {
-    return this.request("PUT", `/hosts/${hostID}`, data);
+    return this.request("PUT", `/hosts/${encodeURIComponent(hostID)}`, data);
   }
 
   async deleteHost(hostID: string): Promise<void> {
-    await this.request("DELETE", `/hosts/${hostID}`);
+    await this.request("DELETE", `/hosts/${encodeURIComponent(hostID)}`);
   }
 
   async blockHost(hostID: string): Promise<SingleResponse<DNHost>> {
-    return this.request("POST", `/hosts/${hostID}/block`);
+    return this.request("POST", `/hosts/${encodeURIComponent(hostID)}/block`);
   }
 
   async unblockHost(hostID: string): Promise<SingleResponse<DNHost>> {
-    return this.request("POST", `/hosts/${hostID}/unblock`);
+    return this.request("POST", `/hosts/${encodeURIComponent(hostID)}/unblock`);
   }
 
   // ─── Enrollment ────────────────────────────────────────────
@@ -325,7 +332,7 @@ export class DefinedAPIClient {
     hostID: string,
     lifetimeSeconds?: number
   ): Promise<SingleResponse<DNEnrollmentCode>> {
-    return this.request("POST", `/hosts/${hostID}/enrollment-code`, {
+    return this.request("POST", `/hosts/${encodeURIComponent(hostID)}/enrollment-code`, {
       lifetimeSeconds,
     });
   }
@@ -342,7 +349,7 @@ export class DefinedAPIClient {
   }
 
   async getRole(roleID: string): Promise<SingleResponse<DNRole>> {
-    return this.request("GET", `/roles/${roleID}`);
+    return this.request("GET", `/roles/${encodeURIComponent(roleID)}`);
   }
 
   async createRole(data: DNRoleCreate): Promise<SingleResponse<DNRole>> {
@@ -353,11 +360,11 @@ export class DefinedAPIClient {
     roleID: string,
     data: Partial<DNRoleCreate>
   ): Promise<SingleResponse<DNRole>> {
-    return this.request("PUT", `/roles/${roleID}`, data);
+    return this.request("PUT", `/roles/${encodeURIComponent(roleID)}`, data);
   }
 
   async deleteRole(roleID: string): Promise<void> {
-    await this.request("DELETE", `/roles/${roleID}`);
+    await this.request("DELETE", `/roles/${encodeURIComponent(roleID)}`);
   }
 
   // ─── Firewall Rules ────────────────────────────────────────
@@ -365,14 +372,14 @@ export class DefinedAPIClient {
   async getRoleFirewallRules(
     roleID: string
   ): Promise<SingleResponse<DNFirewallRule[]>> {
-    return this.request("GET", `/roles/${roleID}/firewall-rules`);
+    return this.request("GET", `/roles/${encodeURIComponent(roleID)}/firewall-rules`);
   }
 
   async updateRoleFirewallRules(
     roleID: string,
     rules: DNFirewallRuleInput[]
   ): Promise<SingleResponse<DNFirewallRule[]>> {
-    return this.request("PUT", `/roles/${roleID}/firewall-rules`, {
+    return this.request("PUT", `/roles/${encodeURIComponent(roleID)}/firewall-rules`, {
       firewallRules: rules,
     });
   }
@@ -391,7 +398,7 @@ export class DefinedAPIClient {
   }
 
   async getRoute(routeID: string): Promise<SingleResponse<DNRoute>> {
-    return this.request("GET", `/routes/${routeID}`);
+    return this.request("GET", `/routes/${encodeURIComponent(routeID)}`);
   }
 
   async createRoute(data: DNRouteCreate): Promise<SingleResponse<DNRoute>> {
@@ -399,7 +406,7 @@ export class DefinedAPIClient {
   }
 
   async deleteRoute(routeID: string): Promise<void> {
-    await this.request("DELETE", `/routes/${routeID}`);
+    await this.request("DELETE", `/routes/${encodeURIComponent(routeID)}`);
   }
 
   // ─── Tags ───────────────────────────────────────────────────
@@ -414,7 +421,7 @@ export class DefinedAPIClient {
   }
 
   async getTag(tagID: string): Promise<SingleResponse<DNTag>> {
-    return this.request("GET", `/tags/${tagID}`);
+    return this.request("GET", `/tags/${encodeURIComponent(tagID)}`);
   }
 
   async createTag(data: DNTagCreate): Promise<SingleResponse<DNTag>> {
@@ -425,11 +432,11 @@ export class DefinedAPIClient {
     tagID: string,
     data: Partial<DNTagCreate>
   ): Promise<SingleResponse<DNTag>> {
-    return this.request("PUT", `/tags/${tagID}`, data);
+    return this.request("PUT", `/tags/${encodeURIComponent(tagID)}`, data);
   }
 
   async deleteTag(tagID: string): Promise<void> {
-    await this.request("DELETE", `/tags/${tagID}`);
+    await this.request("DELETE", `/tags/${encodeURIComponent(tagID)}`);
   }
 
   // ─── Audit Logs ────────────────────────────────────────────
