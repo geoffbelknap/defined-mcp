@@ -41,6 +41,12 @@ export interface DNNetwork {
   hostCount?: number;
 }
 
+export interface DNNetworkUpdate {
+  name: string;
+  description?: string;
+  lighthousesAsRelays: boolean;
+}
+
 export interface DNHost {
   id: string;
   organizationID?: string;
@@ -112,6 +118,15 @@ export interface DNFirewallRuleInput {
   description?: string;
 }
 
+export interface DNRouteFirewallRuleInput {
+  localCIDR?: string;
+  protocol: "ANY" | "TCP" | "UDP" | "ICMP" | string;
+  description?: string;
+  allowedRoleID?: string | null;
+  allowedTags?: string[];
+  portRange?: { from: number; to: number } | null;
+}
+
 export interface DNEnrollmentCode {
   code: string;
   lifetimeSeconds: number;
@@ -124,21 +139,47 @@ export interface DNHostAndEnrollCode {
 
 export interface DNRoute {
   id: string;
-  networkID: string;
-  hostID: string;
-  network: string;
+  name?: string;
+  networkID?: string;
+  hostID?: string;
+  network?: string;
+  routerHostID?: string;
+  routableCIDRs?: Record<string, { install?: boolean }>;
   description?: string;
-  enabled: boolean;
+  enabled?: boolean;
+  firewallRules?: DNRouteFirewallRuleInput[];
   createdAt: string;
+  modifiedAt?: string;
+  firewallRulesCount?: number;
 }
 
 export interface DNRouteCreate {
-  networkID: string;
-  hostID: string;
-  network: string;
+  name: string;
+  routerHostID?: string;
+  routableCIDRs?: Record<string, { install?: boolean }>;
+  firewallRules?: DNRouteFirewallRuleInput[];
   description?: string;
+  networkID?: string;
+  hostID?: string;
+  network?: string;
   enabled?: boolean;
 }
+
+export interface DNRouteUpdate {
+  name: string;
+  description?: string;
+  routerHostID?: string;
+  routableCIDRs?: Record<string, { install?: boolean }>;
+  firewallRules?: DNRouteFirewallRuleInput[];
+}
+
+export type DNHostCommand =
+  | { command: "StreamLogs"; args: { durationSeconds: number; level: "panic" | "fatal" | "error" | "warning" | "info" | "debug" } }
+  | { command: "CreateTunnel"; args: { target: string } }
+  | { command: "PrintTunnel"; args: { target: string } }
+  | { command: "PrintCert"; args: { target: string } }
+  | { command: "QueryLighthouse"; args: { target: string } }
+  | { command: "DebugStack"; args?: Record<string, never> };
 
 export interface DNTag {
   id?: string;
@@ -314,6 +355,24 @@ export class DefinedAPIClient {
     return this.request("GET", `/networks/${encodeURIComponent(networkID)}`, undefined, undefined, 2);
   }
 
+  async updateNetwork(
+    networkID: string,
+    data: DNNetworkUpdate
+  ): Promise<SingleResponse<DNNetwork>> {
+    return this.request("PUT", `/networks/${encodeURIComponent(networkID)}`, data, undefined, 2);
+  }
+
+  async deleteNetwork(networkID: string): Promise<void> {
+    await this.request("DELETE", `/networks/${encodeURIComponent(networkID)}`);
+  }
+
+  async addNetworkCIDR(
+    networkID: string,
+    cidr: string
+  ): Promise<SingleResponse<DNNetwork>> {
+    return this.request("POST", `/networks/${encodeURIComponent(networkID)}/cidrs`, { cidr }, undefined, 2);
+  }
+
   // ─── Hosts ─────────────────────────────────────────────────
 
   async listHosts(
@@ -394,6 +453,13 @@ export class DefinedAPIClient {
     });
   }
 
+  async debugHost(
+    hostID: string,
+    command: DNHostCommand
+  ): Promise<SingleResponse<unknown>> {
+    return this.request("POST", `/hosts/${encodeURIComponent(hostID)}/command`, command);
+  }
+
   // ─── Roles ─────────────────────────────────────────────────
 
   async listRoles(
@@ -459,7 +525,15 @@ export class DefinedAPIClient {
   }
 
   async createRoute(data: DNRouteCreate): Promise<SingleResponse<DNRoute>> {
-    return this.request("POST", "/routes", data);
+    const routeData = normalizeRouteData(data);
+    return this.request("POST", "/routes", routeData);
+  }
+
+  async updateRoute(
+    routeID: string,
+    data: DNRouteUpdate
+  ): Promise<SingleResponse<DNRoute>> {
+    return this.request("PUT", `/routes/${encodeURIComponent(routeID)}`, data);
   }
 
   async deleteRoute(routeID: string): Promise<void> {
@@ -519,4 +593,17 @@ export class DefinedAPIClient {
   async listDownloads(): Promise<SingleResponse<DNDownloads>> {
     return this.request("GET", "/downloads");
   }
+}
+
+function normalizeRouteData(data: DNRouteCreate): DNRouteCreate {
+  if (data.routerHostID || data.routableCIDRs) {
+    return data;
+  }
+
+  const { hostID, network, networkID: _networkID, enabled, ...rest } = data;
+  return {
+    ...rest,
+    routerHostID: hostID,
+    routableCIDRs: network ? { [network]: { install: enabled ?? true } } : undefined,
+  };
 }
