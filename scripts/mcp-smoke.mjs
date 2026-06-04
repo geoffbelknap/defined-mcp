@@ -7,7 +7,7 @@ const mode = process.argv[2] ?? "dry-run";
 const validModes = new Set(["dry-run", "read-only", "all"]);
 
 if (!validModes.has(mode)) {
-  console.error(`Usage: node scripts/ax-smoke.mjs [${[...validModes].join("|")}]`);
+  console.error(`Usage: node scripts/mcp-smoke.mjs [${[...validModes].join("|")}]`);
   process.exit(2);
 }
 
@@ -25,7 +25,7 @@ const dryRunRequests = [
   call(201, "create-host", { networkID: "net_ax_probe", name: "ax-probe-host", dryRun: true }),
   call(202, "update-host", { hostID: "host_ax_probe", name: "ax-probe-renamed", dryRun: true }),
   call(203, "delete-host", { hostID: "host_ax_probe", dryRun: true }),
-  call(204, "block-host", { hostID: "host_ax_probe" }),
+  call(204, "block-host", { hostID: "host_ax_probe", dryRun: true }),
   call(205, "debug-host", { hostID: "host_ax_probe", command: "PrintCert", target: "10.255.0.5", dryRun: true }),
   call(206, "update-network", {
     networkID: "net_ax_probe",
@@ -73,7 +73,7 @@ const requests = [
 ];
 
 if ((mode === "read-only" || mode === "all") && !process.env.DEFINED_API_KEY) {
-  console.error("DEFINED_API_KEY is required for read-only live AX smoke tests.");
+  console.error("DEFINED_API_KEY is required for read-only live MCP smoke tests.");
   process.exit(2);
 }
 
@@ -130,7 +130,7 @@ if (mode === "dry-run" || mode === "all") {
   }
 }
 
-console.log(`AX smoke ${mode}: ${expected.length - 1} tool checks passed`);
+console.log(`MCP smoke ${mode}: ${expected.length - 1} tool checks passed`);
 
 function initialize() {
   return {
@@ -140,7 +140,7 @@ function initialize() {
     params: {
       protocolVersion: "2024-11-05",
       capabilities: {},
-      clientInfo: { name: "defined-mcp-ax-smoke", version: "1.0.0" },
+      clientInfo: { name: "defined-mcp-smoke", version: "1.0.0" },
     },
   };
 }
@@ -177,9 +177,6 @@ function assertDryRunPlan(request) {
   assertToolSuccess(request);
   const envelope = responses.get(request.id).result.structuredContent;
   if (envelope.data?.dry_run !== true) fail(`${request.params.name} did not return dry_run=true`);
-  if (envelope.data?.required_confirmation !== true) {
-    fail(`${request.params.name} did not require confirmation`);
-  }
   if (!Array.isArray(envelope.data?.would_change)) {
     fail(`${request.params.name} did not include would_change[]`);
   }

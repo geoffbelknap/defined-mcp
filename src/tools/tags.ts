@@ -38,7 +38,7 @@ export function registerTagTools(server: McpServer, api: DefinedAPIClient) {
 
   server.tool(
     "create-tag",
-    "Create a new tag for use in host labeling and firewall rules. Tags consist of a key and value separated by a colon (e.g. 'env:production'). Tags can be used in firewall rules to allow fine-grained access control beyond role-based rules. Requires confirm=true to execute; omit confirm or set dryRun=true to preview.",
+    "Create a new tag for use in host labeling and firewall rules. Tags consist of a key and value separated by a colon (e.g. 'env:production'). Tags can be used in firewall rules to allow fine-grained access control beyond role-based rules. Set dryRun=true to preview without making changes.",
     {
       key: z
         .string()
@@ -55,16 +55,15 @@ export function registerTagTools(server: McpServer, api: DefinedAPIClient) {
         .optional()
         .describe("Nebula config overrides associated with the tag"),
       dryRun: z.boolean().optional().describe("Preview the tag creation without changing anything"),
-      confirm: z.boolean().optional().describe("Must be true to create the tag"),
     },
-    async ({ dryRun, confirm, ...params }) => withToolError("create-tag", async () => {
+    async ({ dryRun, ...params }) => withToolError("create-tag", async () => {
       const tag = `${params.key}:${params.value}`;
-      if (dryRun || !confirm) {
+      if (dryRun) {
         return toolPlan("create-tag", {
           action: "create tag",
           resource: { type: "tag", id: tag },
           would_change: [{ type: "created", resource: { type: "tag", id: tag } }],
-          required_confirmation: true,
+          execute_with_dry_run_false: true,
         });
       }
       const result = await api.createTag(params);
@@ -99,15 +98,14 @@ export function registerTagTools(server: McpServer, api: DefinedAPIClient) {
         .optional()
         .describe("Nebula config overrides associated with the tag. Pass [] to clear overrides."),
       dryRun: z.boolean().optional().describe("Preview the tag update without changing anything"),
-      confirm: z.boolean().optional().describe("Must be true to update the tag"),
     },
-    async ({ tag, dryRun, confirm, ...data }) => withToolError("update-tag", async () => {
-      if (dryRun || !confirm) {
+    async ({ tag, dryRun, ...data }) => withToolError("update-tag", async () => {
+      if (dryRun) {
         return toolPlan("update-tag", {
           action: "update tag",
           resource: { type: "tag", id: tag },
           would_change: [{ type: "updated", resource: { type: "tag", id: tag } }],
-          required_confirmation: true,
+          execute_with_dry_run_false: true,
         });
       }
       const result = await api.updateTag(tag, data);
@@ -120,19 +118,18 @@ export function registerTagTools(server: McpServer, api: DefinedAPIClient) {
 
   server.tool(
     "delete-tag",
-    "Delete a tag. Hosts with this tag will have it removed. Requires confirm=true to execute; omit confirm or set dryRun=true to preview.",
+    "Delete a tag. Hosts with this tag will have it removed. Set dryRun=true to preview without making changes.",
     {
       tag: z.string().describe("The tag name to delete, e.g. 'env:production'"),
       dryRun: z.boolean().optional().describe("Preview the tag deletion without changing anything"),
-      confirm: z.boolean().optional().describe("Must be true to delete the tag"),
     },
-    async ({ tag, dryRun, confirm }) => withToolError("delete-tag", async () => {
-      if (dryRun || !confirm) {
+    async ({ tag, dryRun }) => withToolError("delete-tag", async () => {
+      if (dryRun) {
         return toolPlan("delete-tag", {
           action: "delete tag",
           resource: { type: "tag", id: tag },
           would_change: [{ type: "deleted", resource: { type: "tag", id: tag } }],
-          required_confirmation: true,
+          execute_with_dry_run_false: true,
         });
       }
       await api.deleteTag(tag);

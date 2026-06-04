@@ -73,7 +73,7 @@ export function registerRouteTools(server: McpServer, api: DefinedAPIClient) {
 
   server.tool(
     "create-route",
-    "Create an unsafe route to extend overlay network access to non-Nebula subnets behind a router host. Requires confirm=true to execute; omit confirm or set dryRun=true to preview.",
+    "Create an unsafe route to extend overlay network access to non-Nebula subnets behind a router host. Set dryRun=true to preview without making changes.",
     {
       name: z.string().describe("Name of the new route"),
       routerHostID: z
@@ -105,10 +105,9 @@ export function registerRouteTools(server: McpServer, api: DefinedAPIClient) {
         .optional()
         .describe("Whether the route is enabled (default true)"),
       dryRun: z.boolean().optional().describe("Preview the route creation without changing anything"),
-      confirm: z.boolean().optional().describe("Must be true to create the route"),
     },
-    async ({ dryRun, confirm, ...params }) => withToolError("create-route", async () => {
-      if (dryRun || !confirm) {
+    async ({ dryRun, ...params }) => withToolError("create-route", async () => {
+      if (dryRun) {
         return toolPlan(
           "create-route",
           {
@@ -122,7 +121,7 @@ export function registerRouteTools(server: McpServer, api: DefinedAPIClient) {
                 routableCIDRs: params.routableCIDRs ?? (params.network ? { [params.network]: { install: params.enabled ?? true } } : undefined),
               },
             ],
-            required_confirmation: true,
+            execute_with_dry_run_false: true,
           },
           ["Unsafe routes extend overlay access to non-Nebula subnets."]
         );
@@ -140,7 +139,7 @@ export function registerRouteTools(server: McpServer, api: DefinedAPIClient) {
 
   server.tool(
     "update-route",
-    "Update an unsafe route. This is a full replacement: omitted route fields, including firewall rules, may be reset or removed by the API. Requires confirm=true to execute; omit confirm or set dryRun=true to preview.",
+    "Update an unsafe route. This is a full replacement: omitted route fields, including firewall rules, may be reset or removed by the API. Set dryRun=true to preview without making changes.",
     {
       routeID: z.string().describe("The route ID to update"),
       name: z.string().describe("Updated route name"),
@@ -152,10 +151,9 @@ export function registerRouteTools(server: McpServer, api: DefinedAPIClient) {
         .optional()
         .describe("Complete replacement route firewall rule list"),
       dryRun: z.boolean().optional().describe("Preview the route update without changing anything"),
-      confirm: z.boolean().optional().describe("Must be true to update the route"),
     },
-    async ({ routeID, dryRun, confirm, ...data }) => withToolError("update-route", async () => {
-      if (dryRun || !confirm) {
+    async ({ routeID, dryRun, ...data }) => withToolError("update-route", async () => {
+      if (dryRun) {
         return toolPlan(
           "update-route",
           {
@@ -168,7 +166,7 @@ export function registerRouteTools(server: McpServer, api: DefinedAPIClient) {
                 fields: Object.keys(data).filter((key) => data[key as keyof typeof data] !== undefined),
               },
             ],
-            required_confirmation: true,
+            execute_with_dry_run_false: true,
           },
           ["Route updates are full replacements; include all existing routable CIDRs and firewall rules you want to keep."]
         );
@@ -183,19 +181,18 @@ export function registerRouteTools(server: McpServer, api: DefinedAPIClient) {
 
   server.tool(
     "delete-route",
-    "Delete an unsafe route, removing the ability for overlay hosts to reach the target subnet through the gateway host. Requires confirm=true to execute; omit confirm or set dryRun=true to preview.",
+    "Delete an unsafe route, removing the ability for overlay hosts to reach the target subnet through the gateway host. Set dryRun=true to preview without making changes.",
     {
       routeID: z.string().describe("The route ID to delete"),
       dryRun: z.boolean().optional().describe("Preview the route deletion without changing anything"),
-      confirm: z.boolean().optional().describe("Must be true to delete the route"),
     },
-    async ({ routeID, dryRun, confirm }) => withToolError("delete-route", async () => {
-      if (dryRun || !confirm) {
+    async ({ routeID, dryRun }) => withToolError("delete-route", async () => {
+      if (dryRun) {
         return toolPlan("delete-route", {
           action: "delete unsafe route",
           resource: { type: "route", id: routeID },
           would_change: [{ type: "deleted", resource: { type: "route", id: routeID } }],
-          required_confirmation: true,
+          execute_with_dry_run_false: true,
         });
       }
       await api.deleteRoute(routeID);

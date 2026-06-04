@@ -60,7 +60,7 @@ export function registerHostTools(server: McpServer, api: DefinedAPIClient) {
 
   server.tool(
     "create-host",
-    "Create a new host in a Nebula overlay network. You can specify the role, whether it's a lighthouse or relay, static addresses, and tags. Requires confirm=true to execute; omit confirm or set dryRun=true to preview.",
+    "Create a new host in a Nebula overlay network. You can specify the role, whether it's a lighthouse or relay, static addresses, and tags. Set dryRun=true to preview without making changes.",
     {
       networkID: z
         .string()
@@ -107,15 +107,14 @@ export function registerHostTools(server: McpServer, api: DefinedAPIClient) {
         .optional()
         .describe("Nebula config overrides to apply to the host"),
       dryRun: z.boolean().optional().describe("Preview the host creation without changing anything"),
-      confirm: z.boolean().optional().describe("Must be true to create the host"),
     },
-    async ({ dryRun, confirm, ...params }) => withToolError("create-host", async () => {
-      if (dryRun || !confirm) {
+    async ({ dryRun, ...params }) => withToolError("create-host", async () => {
+      if (dryRun) {
         return toolPlan("create-host", {
           action: "create host",
           resource: { type: "host", id: params.name },
           would_change: [{ type: "created", resource: { type: "host", id: params.name } }],
-          required_confirmation: true,
+          execute_with_dry_run_false: true,
         });
       }
       const result = await api.createHost(params);
@@ -131,7 +130,7 @@ export function registerHostTools(server: McpServer, api: DefinedAPIClient) {
 
   server.tool(
     "update-host",
-    "Update an existing host's name, role, static addresses, listen port, or tags. Requires confirm=true to execute; omit confirm or set dryRun=true to preview.",
+    "Update an existing host's name, role, static addresses, listen port, or tags. Set dryRun=true to preview without making changes.",
     {
       hostID: z.string().describe("The host ID to update"),
       name: z.string().optional().describe("New name for the host"),
@@ -153,10 +152,9 @@ export function registerHostTools(server: McpServer, api: DefinedAPIClient) {
         .optional()
         .describe("Updated Nebula config overrides. Pass [] to clear overrides."),
       dryRun: z.boolean().optional().describe("Preview the host update without changing anything"),
-      confirm: z.boolean().optional().describe("Must be true to update the host"),
     },
-    async ({ hostID, dryRun, confirm, ...data }) => withToolError("update-host", async () => {
-      if (dryRun || !confirm) {
+    async ({ hostID, dryRun, ...data }) => withToolError("update-host", async () => {
+      if (dryRun) {
         return toolPlan("update-host", {
           action: "update host",
           resource: { type: "host", id: hostID },
@@ -167,7 +165,7 @@ export function registerHostTools(server: McpServer, api: DefinedAPIClient) {
               fields: Object.keys(data).filter((key) => data[key as keyof typeof data] !== undefined),
             },
           ],
-          required_confirmation: true,
+          execute_with_dry_run_false: true,
         });
       }
       const result = await api.updateHost(hostID, data);
@@ -180,19 +178,18 @@ export function registerHostTools(server: McpServer, api: DefinedAPIClient) {
 
   server.tool(
     "delete-host",
-    "Permanently delete a host from the Nebula overlay network. This removes the host and invalidates its certificates. Requires confirm=true to execute; omit confirm or set dryRun=true to preview.",
+    "Permanently delete a host from the Nebula overlay network. This removes the host and invalidates its certificates. Set dryRun=true to preview without making changes.",
     {
       hostID: z.string().describe("The host ID to delete"),
       dryRun: z.boolean().optional().describe("Preview the deletion without changing anything"),
-      confirm: z.boolean().optional().describe("Must be true to execute the deletion"),
     },
-    async ({ hostID, dryRun, confirm }) => withToolError("delete-host", async () => {
-      if (dryRun || !confirm) {
+    async ({ hostID, dryRun }) => withToolError("delete-host", async () => {
+      if (dryRun) {
         return toolPlan("delete-host", {
           action: "delete host",
           resource: { type: "host", id: hostID },
           would_change: [{ type: "deleted", resource: { type: "host", id: hostID } }],
-          required_confirmation: true,
+          execute_with_dry_run_false: true,
         });
       }
       await api.deleteHost(hostID);
@@ -202,19 +199,18 @@ export function registerHostTools(server: McpServer, api: DefinedAPIClient) {
 
   server.tool(
     "block-host",
-    "Block a host, preventing it from communicating on the Nebula overlay network. Requires confirm=true to execute; omit confirm or set dryRun=true to preview.",
+    "Block a host, preventing it from communicating on the Nebula overlay network. Set dryRun=true to preview without making changes.",
     {
       hostID: z.string().describe("The host ID to block"),
       dryRun: z.boolean().optional().describe("Preview the block without changing anything"),
-      confirm: z.boolean().optional().describe("Must be true to execute the block"),
     },
-    async ({ hostID, dryRun, confirm }) => withToolError("block-host", async () => {
-      if (dryRun || !confirm) {
+    async ({ hostID, dryRun }) => withToolError("block-host", async () => {
+      if (dryRun) {
         return toolPlan("block-host", {
           action: "block host",
           resource: { type: "host", id: hostID },
           would_change: [{ type: "blocked", resource: { type: "host", id: hostID } }],
-          required_confirmation: true,
+          execute_with_dry_run_false: true,
         });
       }
       const result = await api.blockHost(hostID);
@@ -227,19 +223,18 @@ export function registerHostTools(server: McpServer, api: DefinedAPIClient) {
 
   server.tool(
     "unblock-host",
-    "Unblock a previously blocked host, restoring its ability to communicate on the Nebula overlay network. Requires confirm=true to execute; omit confirm or set dryRun=true to preview.",
+    "Unblock a previously blocked host, restoring its ability to communicate on the Nebula overlay network. Set dryRun=true to preview without making changes.",
     {
       hostID: z.string().describe("The host ID to unblock"),
       dryRun: z.boolean().optional().describe("Preview the unblock without changing anything"),
-      confirm: z.boolean().optional().describe("Must be true to execute the unblock"),
     },
-    async ({ hostID, dryRun, confirm }) => withToolError("unblock-host", async () => {
-      if (dryRun || !confirm) {
+    async ({ hostID, dryRun }) => withToolError("unblock-host", async () => {
+      if (dryRun) {
         return toolPlan("unblock-host", {
           action: "unblock host",
           resource: { type: "host", id: hostID },
           would_change: [{ type: "unblocked", resource: { type: "host", id: hostID } }],
-          required_confirmation: true,
+          execute_with_dry_run_false: true,
         });
       }
       const result = await api.unblockHost(hostID);
@@ -252,7 +247,7 @@ export function registerHostTools(server: McpServer, api: DefinedAPIClient) {
 
   server.tool(
     "debug-host",
-    "Send a debug command to the dnclient running on a host. Supports StreamLogs, CreateTunnel, PrintTunnel, PrintCert, QueryLighthouse, and DebugStack. Requires confirm=true to execute; omit confirm or set dryRun=true to preview.",
+    "Send a debug command to the dnclient running on a host. Supports StreamLogs, CreateTunnel, PrintTunnel, PrintCert, QueryLighthouse, and DebugStack. Set dryRun=true to preview without making changes.",
     {
       hostID: z.string().describe("The host ID to debug"),
       command: z
@@ -273,16 +268,15 @@ export function registerHostTools(server: McpServer, api: DefinedAPIClient) {
         .optional()
         .describe("StreamLogs level"),
       dryRun: z.boolean().optional().describe("Preview the debug command without running it"),
-      confirm: z.boolean().optional().describe("Must be true to run the debug command"),
     },
-    async ({ hostID, command, target, durationSeconds, level, dryRun, confirm }) => withToolError("debug-host", async () => {
+    async ({ hostID, command, target, durationSeconds, level, dryRun }) => withToolError("debug-host", async () => {
       const commandPayload = buildHostDebugCommand(command, {
         target,
         durationSeconds,
         level,
       });
 
-      if (dryRun || !confirm) {
+      if (dryRun) {
         return toolPlan(
           "debug-host",
           {
@@ -295,7 +289,7 @@ export function registerHostTools(server: McpServer, api: DefinedAPIClient) {
                 command,
               },
             ],
-            required_confirmation: true,
+            execute_with_dry_run_false: true,
           },
           command === "StreamLogs"
             ? ["StreamLogs can return newline-delimited log output and may run for the requested duration."]

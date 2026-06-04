@@ -12,9 +12,9 @@
     "start": "node dist/index.js",
     "dev": "tsc --watch",
     "prepare": "npm run build",
-    "test": "npm run build && npm run test:ax:dry-run",
-    "test:ax:dry-run": "node scripts/ax-smoke.mjs dry-run",
-    "test:ax:live": "node scripts/ax-smoke.mjs all",
+    "test": "npm run build && npm run test:dry-run",
+    "test:dry-run": "node scripts/mcp-smoke.mjs dry-run",
+    "test:live": "node scripts/mcp-smoke.mjs all",
     "security:audit": "npm audit"
   },
   "repository": {

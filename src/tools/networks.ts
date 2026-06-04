@@ -43,17 +43,16 @@ export function registerNetworkTools(
 
   server.tool(
     "update-network",
-    "Update a network's name, description, and lighthouse relay behavior. This is a reset-style update: properties not provided by the API request may reset to defaults. Requires confirm=true to execute; omit confirm or set dryRun=true to preview.",
+    "Update a network's name, description, and lighthouse relay behavior. This is a reset-style update: properties not provided by the API request may reset to defaults. Set dryRun=true to preview without making changes.",
     {
       networkID: z.string().describe("The network ID to update"),
       name: z.string().describe("Updated network name"),
       description: z.string().optional().describe("Updated network description"),
       lighthousesAsRelays: z.boolean().describe("Whether lighthouses in this network should also act as relays"),
       dryRun: z.boolean().optional().describe("Preview the network update without changing anything"),
-      confirm: z.boolean().optional().describe("Must be true to update the network"),
     },
-    async ({ networkID, dryRun, confirm, ...data }) => withToolError("update-network", async () => {
-      if (dryRun || !confirm) {
+    async ({ networkID, dryRun, ...data }) => withToolError("update-network", async () => {
+      if (dryRun) {
         return toolPlan(
           "update-network",
           {
@@ -66,7 +65,7 @@ export function registerNetworkTools(
                 fields: Object.keys(data),
               },
             ],
-            required_confirmation: true,
+            execute_with_dry_run_false: true,
           },
           ["Network updates are full API updates; include every current value you want to keep."]
         );
@@ -81,19 +80,18 @@ export function registerNetworkTools(
 
   server.tool(
     "delete-network",
-    "Delete an empty network. The network must have no hosts before it can be deleted. Requires confirm=true to execute; omit confirm or set dryRun=true to preview.",
+    "Delete an empty network. The network must have no hosts before it can be deleted. Set dryRun=true to preview without making changes.",
     {
       networkID: z.string().describe("The network ID to delete"),
       dryRun: z.boolean().optional().describe("Preview the network deletion without changing anything"),
-      confirm: z.boolean().optional().describe("Must be true to delete the network"),
     },
-    async ({ networkID, dryRun, confirm }) => withToolError("delete-network", async () => {
-      if (dryRun || !confirm) {
+    async ({ networkID, dryRun }) => withToolError("delete-network", async () => {
+      if (dryRun) {
         return toolPlan("delete-network", {
           action: "delete network",
           resource: { type: "network", id: networkID },
           would_change: [{ type: "deleted", resource: { type: "network", id: networkID } }],
-          required_confirmation: true,
+          execute_with_dry_run_false: true,
         });
       }
       await api.deleteNetwork(networkID);
@@ -103,15 +101,14 @@ export function registerNetworkTools(
 
   server.tool(
     "add-network-cidr",
-    "Add an IPv4 CIDR to an existing IPv6-only network, making it dual-stack. Each network supports at most one IPv4 CIDR. Requires confirm=true to execute; omit confirm or set dryRun=true to preview.",
+    "Add an IPv4 CIDR to an existing IPv6-only network, making it dual-stack. Each network supports at most one IPv4 CIDR. Set dryRun=true to preview without making changes.",
     {
       networkID: z.string().describe("The network ID to modify"),
       cidr: z.string().describe("The IPv4 CIDR to add, e.g. 192.168.4.0/22"),
       dryRun: z.boolean().optional().describe("Preview the CIDR addition without changing anything"),
-      confirm: z.boolean().optional().describe("Must be true to add the CIDR"),
     },
-    async ({ networkID, cidr, dryRun, confirm }) => withToolError("add-network-cidr", async () => {
-      if (dryRun || !confirm) {
+    async ({ networkID, cidr, dryRun }) => withToolError("add-network-cidr", async () => {
+      if (dryRun) {
         return toolPlan("add-network-cidr", {
           action: "add network cidr",
           resource: { type: "network", id: networkID },
@@ -122,7 +119,7 @@ export function registerNetworkTools(
               cidr,
             },
           ],
-          required_confirmation: true,
+          execute_with_dry_run_false: true,
         });
       }
       const result = await api.addNetworkCIDR(networkID, cidr);

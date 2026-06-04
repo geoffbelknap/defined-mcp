@@ -95,7 +95,7 @@ export function toolPlan(
     action: string;
     resource?: { type: string; id: string };
     would_change: SideEffect[];
-    required_confirmation: boolean;
+    execute_with_dry_run_false?: boolean;
   },
   warnings: string[] = []
 ): CallToolResult {

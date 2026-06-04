@@ -1,12 +1,12 @@
 # Defined Networking MCP Server
 
-An MCP (Model Context Protocol) server that enables AI agents to design, build, manage, and operate [Nebula](https://github.com/slackhq/nebula) overlay networks through the [Defined Networking](https://www.defined.net/) API.
+An MCP (Model Context Protocol) server that lets AI coding and DevOps agents manage [Defined Networking](https://www.defined.net/) / Managed [Nebula](https://github.com/slackhq/nebula) infrastructure.
 
-Built for [OpenClaw](https://docs.openclaw.ai/) and any MCP-compatible AI agent platform (Claude, VS Code, etc.).
+Use it with Codex, Claude Code, Copilot CLI, VS Code, and other MCP-compatible development tools.
 
 ## What This Does
 
-Use this server to let an agent inspect and manage Defined Networking / Managed Nebula infrastructure without hand-writing API calls. It supports common workflows such as:
+Use this server to let an agent inspect and manage Defined Networking infrastructure without hand-writing API calls. It supports common workflows such as:
 
 - designing a Nebula network topology
 - provisioning hosts and enrollment codes
@@ -14,18 +14,37 @@ Use this server to let an agent inspect and manage Defined Networking / Managed 
 - auditing configuration and administrative activity
 - troubleshooting host connectivity and dnclient state
 
-Mutating operations are safe by default: agents get a dry-run plan unless they explicitly pass `confirm: true`.
-
 ## Quick Start
+
+Install the server:
 
 ```bash
 nvm use
 npm install
 npm run build
-npm run test:ax:live
 ```
 
-`test:ax:live` reads `DEFINED_API_KEY` from the environment, checks the MCP server against the live Defined API with read-only calls and dry-run mutation plans, and does not execute confirmed mutations.
+Add it to your MCP client:
+
+```json
+{
+  "mcpServers": {
+    "defined-nebula": {
+      "command": "node",
+      "args": ["/path/to/defined-mcp/dist/index.js"],
+      "env": {
+        "DEFINED_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+For tools that support managed secrets or environment variables, store `DEFINED_API_KEY` there instead of writing it directly into a config file.
+
+Ask your agent to inspect the account:
+
+> "List my Defined Networking networks and summarize the hosts, roles, routes, and tags."
 
 ## Setup
 
@@ -66,7 +85,7 @@ Then load it for the current shell session before running live checks. The comma
 set -a
 . ./.env.local
 set +a
-npm run test:ax:live
+npm run test:live
 ```
 
 ### Install From npm
@@ -84,27 +103,9 @@ npm install
 npm run build
 ```
 
-### Configure for Claude Desktop
+### MCP Client Configuration
 
-Add to your `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "defined-nebula": {
-      "command": "node",
-      "args": ["/path/to/defined-mcp/dist/index.js"],
-      "env": {
-        "DEFINED_API_KEY": "your-api-key-here"
-      }
-    }
-  }
-}
-```
-
-### Configure for OpenClaw
-
-Add to your `~/.openclaw/openclaw.json`:
+Use this shape for MCP clients that accept JSON server configuration:
 
 ```json
 {
@@ -120,21 +121,7 @@ Add to your `~/.openclaw/openclaw.json`:
 }
 ```
 
-### Configure for Claude Code
-
-Add to your MCP settings:
-
-```json
-{
-  "defined-nebula": {
-    "command": "node",
-    "args": ["/path/to/defined-mcp/dist/index.js"],
-    "env": {
-      "DEFINED_API_KEY": "your-api-key-here"
-    }
-  }
-}
-```
+If you installed the package globally, use `"command": "defined-mcp"` and omit `args`.
 
 ### Environment Variables
 
@@ -143,85 +130,11 @@ Add to your MCP settings:
 | `DEFINED_API_KEY` | Yes | — | Your Defined Networking API key |
 | `DEFINED_API_URL` | No | `https://api.defined.net` | API base URL (for custom deployments) |
 
-## Agent Experience Contract
+## Tool Behavior
 
-Tool responses are optimized for MCP clients and LLM agents:
-
-- Successful tools return `structuredContent` with `schema_version`, `ok`, `operation`, `request_id`, `data`, `metadata`, `side_effects`, `warnings`, and `observed_at`.
-- The text response is a JSON-formatted fallback of the same envelope.
-- API errors return classified structured errors with retryability, status code, request ID when available, and suggested next actions.
-- Mutating tools are dry-run by default. Omit `confirm` or set `dryRun: true` to preview the operation. Pass `confirm: true` only after reviewing the planned `would_change` list.
-- Enrollment-code tools are treated as sensitive because live responses can contain credential material.
-
-Successful response envelope:
-
-```json
-{
-  "schema_version": "ax.tool.v1",
-  "ok": true,
-  "operation": "list-hosts",
-  "request_id": "5f0b2f8d-1c8e-4f6e-9f1e-3a5f1b2c9f5a",
-  "data": [],
-  "metadata": {
-    "hasNextPage": false,
-    "nextCursor": null
-  },
-  "side_effects": [],
-  "warnings": [],
-  "observed_at": "2026-06-04T21:00:00.000Z"
-}
-```
-
-Error response envelope:
-
-```json
-{
-  "schema_version": "ax.tool.v1",
-  "ok": false,
-  "operation": "get-host",
-  "request_id": "9f4df80f-0452-4b14-92ff-7b1b7420b86e",
-  "error": {
-    "code": "not_found",
-    "class": "not_found",
-    "message": "Host not found",
-    "status_code": 404,
-    "retryable": false,
-    "same_input_retryable": false,
-    "suggested_next_actions": [
-      "List resources to find a valid target ID or name before retrying."
-    ]
-  },
-  "side_effects": [],
-  "warnings": [],
-  "observed_at": "2026-06-04T21:00:00.000Z"
-}
-```
-
-Example dry-run mutation:
-
-```json
-{
-  "name": "update-firewall-rules",
-  "arguments": {
-    "roleID": "role_123",
-    "firewallRules": [],
-    "dryRun": true
-  }
-}
-```
-
-Example confirmed mutation:
-
-```json
-{
-  "name": "update-firewall-rules",
-  "arguments": {
-    "roleID": "role_123",
-    "firewallRules": [],
-    "confirm": true
-  }
-}
-```
+- Tools return structured results with operation names, resource IDs, side effects, warnings, and API error details.
+- Mutating tools execute when called. Pass `dryRun: true` when you want the server to return a preview plan instead.
+- Enrollment-code tools can return credential material. Treat their results like secrets.
 
 ## Capabilities
 
@@ -232,46 +145,46 @@ The MCP targets the current non-deprecated Defined Networking API surface from t
 **Network Management**
 - `list-networks` — List all Nebula overlay networks
 - `get-network` — Get detailed network information
-- `update-network` — Update network name, description, and lighthouse relay behavior (confirmation required)
-- `delete-network` — Delete an empty network (confirmation required)
-- `add-network-cidr` — Add an IPv4 CIDR to an IPv6-only network (confirmation required)
+- `update-network` — Update network name, description, and lighthouse relay behavior
+- `delete-network` — Delete an empty network
+- `add-network-cidr` — Add an IPv4 CIDR to an IPv6-only network
 
 **Host Management**
 - `list-hosts` — List hosts with filtering (by network, role, type, status)
 - `get-host` — Get host details
-- `create-host` — Create a new host (lighthouse, relay, or regular; confirmation required)
-- `update-host` — Update host configuration (confirmation required)
-- `delete-host` — Remove a host from the network (confirmation required)
-- `block-host` — Block a host (revoke network access; confirmation required)
-- `unblock-host` — Restore a blocked host (confirmation required)
-- `debug-host` — Send host debug commands such as log streaming, tunnel inspection, certificate inspection, lighthouse queries, and stack traces (confirmation required)
+- `create-host` — Create a new host (lighthouse, relay, or regular)
+- `update-host` — Update host configuration
+- `delete-host` — Remove a host from the network
+- `block-host` — Block a host (revoke network access)
+- `unblock-host` — Restore a blocked host
+- `debug-host` — Send host debug commands such as log streaming, tunnel inspection, certificate inspection, lighthouse queries, and stack traces
 
 **Enrollment**
-- `create-host-and-enrollment-code` — Create a host + enrollment code in one step (confirmation required)
-- `create-enrollment-code` — Generate enrollment code for existing host (confirmation required)
+- `create-host-and-enrollment-code` — Create a host + enrollment code in one step
+- `create-enrollment-code` — Generate enrollment code for existing host
 
 **Roles & Firewall**
 - `list-roles` — List all roles
 - `get-role` — Get role details with firewall rules
-- `create-role` — Create a new role (confirmation required)
-- `update-role` — Update role configuration (confirmation required)
-- `delete-role` — Remove a role (confirmation required)
+- `create-role` — Create a new role
+- `update-role` — Update role configuration
+- `delete-role` — Remove a role
 - `get-firewall-rules` — Get inbound firewall rules for a role
-- `update-firewall-rules` — Replace firewall rules for a role (supports role-based and tag-based rules; confirmation required)
+- `update-firewall-rules` — Replace firewall rules for a role (supports role-based and tag-based rules)
 
 **Tags**
 - `list-tags` — List all tags (key:value pairs for fine-grained access control)
 - `get-tag` — Get tag details
-- `create-tag` — Create a new tag (e.g. `env:production`, `region:us-east`; confirmation required)
-- `update-tag` — Update a tag (confirmation required)
-- `delete-tag` — Remove a tag (confirmation required)
+- `create-tag` — Create a new tag (e.g. `env:production`, `region:us-east`)
+- `update-tag` — Update a tag
+- `delete-tag` — Remove a tag
 
 **Routes (Unsafe Routes)**
 - `list-routes` — List routes extending access to non-overlay subnets
 - `get-route` — Get route details
-- `create-route` — Create a route through a gateway host (confirmation required)
-- `update-route` — Update route name, router host, routable CIDRs, and firewall rules (confirmation required)
-- `delete-route` — Remove a route (confirmation required)
+- `create-route` — Create a route through a gateway host
+- `update-route` — Update route name, router host, routable CIDRs, and firewall rules
+- `delete-route` — Remove a route
 
 **Audit & Compliance**
 - `list-audit-logs` — Search audit logs by target
@@ -316,7 +229,7 @@ The agent will use the `design-network` prompt to plan the topology, then execut
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  AI Agent (OpenClaw / Claude / VS Code / etc.)  │
+│  AI Agent (Codex / Claude Code / VS Code / etc.)│
 ├─────────────────────────────────────────────────┤
 │  MCP Protocol (stdio / JSON-RPC 2.0)            │
 ├─────────────────────────────────────────────────┤
@@ -354,12 +267,12 @@ npm start      # Run the server
 ### Tests and Security Checks
 
 ```bash
-npm test              # Build and run non-mutating AX dry-run smoke tests
-npm run test:ax:live  # Run read-only live API checks plus dry-run mutation checks
+npm test              # Build and run non-mutating dry-run smoke tests
+npm run test:live     # Run read-only live API checks plus dry-run mutation checks
 npm run security:audit
 ```
 
-`npm run test:ax:live` requires `DEFINED_API_KEY`. It performs read-only API calls and dry-run mutation checks only; it does not execute confirmed mutations.
+`npm run test:live` requires `DEFINED_API_KEY`. It performs read-only API calls and explicit dry-run mutation checks only.
 
 The default `npm test` target is safe for CI environments without real Defined credentials because it uses dry-run mutation plans and a placeholder API key.
 
