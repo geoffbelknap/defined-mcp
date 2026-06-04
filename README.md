@@ -22,10 +22,10 @@ Mutating operations are safe by default: agents get a dry-run plan unless they e
 nvm use
 npm install
 npm run build
-DEFINED_API_KEY="dnkey_..." npm run test:ax:live
+npm run test:ax:live
 ```
 
-`test:ax:live` checks the MCP server against the live Defined API with read-only calls and dry-run mutation plans. It does not execute confirmed mutations.
+`test:ax:live` reads `DEFINED_API_KEY` from the environment, checks the MCP server against the live Defined API with read-only calls and dry-run mutation plans, and does not execute confirmed mutations.
 
 ## Setup
 
@@ -51,6 +51,23 @@ This repo includes `.nvmrc` and `.node-version` set to Node `24.16.0`. npm also 
    - `tags:create`, `tags:read`, `tags:update`, `tags:delete` — Manage tags
    - `routes:create`, `routes:read`, `routes:delete` — Manage routes
    - `auditLogs:list` — View audit logs
+
+Do not paste API keys directly into shell commands. Prefer an MCP client secret store, a local environment file that is excluded from git, or your shell's secure environment management.
+
+For local development, create an ignored `.env.local` file:
+
+```bash
+DEFINED_API_KEY=your-api-key-here
+```
+
+Then load it for the current shell session before running live checks. The command itself does not contain the secret, so it will not be written to shell history:
+
+```bash
+set -a
+. ./.env.local
+set +a
+npm run test:ax:live
+```
 
 ### Install From npm
 
