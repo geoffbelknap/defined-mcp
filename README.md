@@ -73,6 +73,8 @@ Built for [OpenClaw](https://docs.openclaw.ai/) and any MCP-compatible AI agent 
 - Node.js 24 LTS (`24.16.0` or newer within the Node 24 line)
 - A [Defined Networking](https://admin.defined.net) account with an API key
 
+This repo includes `.nvmrc` and `.node-version` set to Node `24.16.0`. npm also uses `engine-strict=true`, so installs fail on unsupported Node versions instead of silently using an EOL runtime.
+
 ### Get an API Key
 
 1. Go to [admin.defined.net/settings/api-keys](https://admin.defined.net/settings/api-keys)
@@ -103,6 +105,17 @@ cd defined-mcp
 npm install
 npm run build
 ```
+
+### Quick Start
+
+```bash
+nvm use
+npm install
+npm run build
+DEFINED_API_KEY="dnkey_..." npm run test:ax:live
+```
+
+`test:ax:live` checks the MCP server against the live Defined API with read-only calls and dry-run mutation plans. It does not execute confirmed mutations.
 
 ### Configure for Claude Desktop
 
@@ -172,6 +185,50 @@ Tool responses are optimized for MCP clients and LLM agents:
 - API errors return classified structured errors with retryability, status code, request ID when available, and suggested next actions.
 - Mutating tools are dry-run by default. Omit `confirm` or set `dryRun: true` to preview the operation. Pass `confirm: true` only after reviewing the planned `would_change` list.
 - Enrollment-code tools are treated as sensitive because live responses can contain credential material.
+
+Successful response envelope:
+
+```json
+{
+  "schema_version": "ax.tool.v1",
+  "ok": true,
+  "operation": "list-hosts",
+  "request_id": "5f0b2f8d-1c8e-4f6e-9f1e-3a5f1b2c9f5a",
+  "data": [],
+  "metadata": {
+    "hasNextPage": false,
+    "nextCursor": null
+  },
+  "side_effects": [],
+  "warnings": [],
+  "observed_at": "2026-06-04T21:00:00.000Z"
+}
+```
+
+Error response envelope:
+
+```json
+{
+  "schema_version": "ax.tool.v1",
+  "ok": false,
+  "operation": "get-host",
+  "request_id": "9f4df80f-0452-4b14-92ff-7b1b7420b86e",
+  "error": {
+    "code": "not_found",
+    "class": "not_found",
+    "message": "Host not found",
+    "status_code": 404,
+    "retryable": false,
+    "same_input_retryable": false,
+    "suggested_next_actions": [
+      "List resources to find a valid target ID or name before retrying."
+    ]
+  },
+  "side_effects": [],
+  "warnings": [],
+  "observed_at": "2026-06-04T21:00:00.000Z"
+}
+```
 
 Example dry-run mutation:
 
@@ -251,6 +308,7 @@ The agent will use the `design-network` prompt to plan the topology, then execut
 ## Development
 
 ```bash
+nvm use
 npm install
 npm run dev    # Watch mode
 npm run build  # Production build
@@ -266,6 +324,8 @@ npm run security:audit
 ```
 
 `npm run test:ax:live` requires `DEFINED_API_KEY`. It performs read-only API calls and dry-run mutation checks only; it does not execute confirmed mutations.
+
+The default `npm test` target is safe for CI environments without real Defined credentials because it uses dry-run mutation plans and a placeholder API key.
 
 ## License
 
