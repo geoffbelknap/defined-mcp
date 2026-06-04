@@ -3,6 +3,11 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { DefinedAPIClient } from "../api-client.js";
 import { toolDeleted, toolPlan, toolSuccess, withToolError } from "../mcp-response.js";
 
+const configOverrideSchema = z.object({
+  key: z.string().describe("Nebula config override key"),
+  value: z.unknown().describe("Nebula config override value"),
+});
+
 export function registerTagTools(server: McpServer, api: DefinedAPIClient) {
   server.tool(
     "list-tags",
@@ -45,6 +50,10 @@ export function registerTagTools(server: McpServer, api: DefinedAPIClient) {
         .string()
         .optional()
         .describe("Optional description of the tag"),
+      configOverrides: z
+        .array(configOverrideSchema)
+        .optional()
+        .describe("Nebula config overrides associated with the tag"),
       dryRun: z.boolean().optional().describe("Preview the tag creation without changing anything"),
       confirm: z.boolean().optional().describe("Must be true to create the tag"),
     },
@@ -85,6 +94,10 @@ export function registerTagTools(server: McpServer, api: DefinedAPIClient) {
         .array(z.string())
         .optional()
         .describe("Route IDs to subscribe hosts with this tag to"),
+      configOverrides: z
+        .array(configOverrideSchema)
+        .optional()
+        .describe("Nebula config overrides associated with the tag. Pass [] to clear overrides."),
       dryRun: z.boolean().optional().describe("Preview the tag update without changing anything"),
       confirm: z.boolean().optional().describe("Must be true to update the tag"),
     },

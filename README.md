@@ -6,11 +6,14 @@ Built for [OpenClaw](https://docs.openclaw.ai/) and any MCP-compatible AI agent 
 
 ## Features
 
-### Tools (29 operations)
+### Tools (34 operations)
 
 **Network Management**
 - `list-networks` — List all Nebula overlay networks
 - `get-network` — Get detailed network information
+- `update-network` — Update network name, description, and lighthouse relay behavior (confirmation required)
+- `delete-network` — Delete an empty network (confirmation required)
+- `add-network-cidr` — Add an IPv4 CIDR to an IPv6-only network (confirmation required)
 
 **Host Management**
 - `list-hosts` — List hosts with filtering (by network, role, type, status)
@@ -20,6 +23,7 @@ Built for [OpenClaw](https://docs.openclaw.ai/) and any MCP-compatible AI agent 
 - `delete-host` — Remove a host from the network (confirmation required)
 - `block-host` — Block a host (revoke network access; confirmation required)
 - `unblock-host` — Restore a blocked host (confirmation required)
+- `debug-host` — Send host debug commands such as log streaming, tunnel inspection, certificate inspection, lighthouse queries, and stack traces (confirmation required)
 
 **Enrollment**
 - `create-host-and-enrollment-code` — Create a host + enrollment code in one step (confirmation required)
@@ -45,6 +49,7 @@ Built for [OpenClaw](https://docs.openclaw.ai/) and any MCP-compatible AI agent 
 - `list-routes` — List routes extending access to non-overlay subnets
 - `get-route` — Get route details
 - `create-route` — Create a route through a gateway host (confirmation required)
+- `update-route` — Update route name, router host, routable CIDRs, and firewall rules (confirmation required)
 - `delete-route` — Remove a route (confirmation required)
 
 **Audit & Compliance**
@@ -65,6 +70,10 @@ Built for [OpenClaw](https://docs.openclaw.ai/) and any MCP-compatible AI agent 
 - `provision-host` — Step-by-step host provisioning guide
 - `audit-security` — Security posture audit
 - `troubleshoot-connectivity` — Debug connectivity between hosts
+
+### API Coverage
+
+The MCP targets the current non-deprecated Defined Networking API surface from the official OpenAPI description, including hosts, roles, routes, tags, audit logs, networks, and downloads. Deprecated v1 endpoints are intentionally omitted when a current replacement exists.
 
 ## Setup
 

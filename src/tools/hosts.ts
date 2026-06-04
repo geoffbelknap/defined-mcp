@@ -1,7 +1,12 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { DefinedAPIClient } from "../api-client.js";
+import type { DefinedAPIClient, DNHostCommand } from "../api-client.js";
 import { toolDeleted, toolPlan, toolSuccess, withToolError } from "../mcp-response.js";
+
+const configOverrideSchema = z.object({
+  key: z.string().describe("Nebula config override key"),
+  value: z.unknown().describe("Nebula config override value"),
+});
 
 export function registerHostTools(server: McpServer, api: DefinedAPIClient) {
   server.tool(
@@ -97,6 +102,10 @@ export function registerHostTools(server: McpServer, api: DefinedAPIClient) {
         .array(z.string())
         .optional()
         .describe("Tags to apply to the host"),
+      configOverrides: z
+        .array(configOverrideSchema)
+        .optional()
+        .describe("Nebula config overrides to apply to the host"),
       dryRun: z.boolean().optional().describe("Preview the host creation without changing anything"),
       confirm: z.boolean().optional().describe("Must be true to create the host"),
     },
@@ -139,6 +148,10 @@ export function registerHostTools(server: McpServer, api: DefinedAPIClient) {
         .array(z.string())
         .optional()
         .describe("Updated tags"),
+      configOverrides: z
+        .array(configOverrideSchema)
+        .optional()
+        .describe("Updated Nebula config overrides. Pass [] to clear overrides."),
       dryRun: z.boolean().optional().describe("Preview the host update without changing anything"),
       confirm: z.boolean().optional().describe("Must be true to update the host"),
     },
@@ -236,4 +249,95 @@ export function registerHostTools(server: McpServer, api: DefinedAPIClient) {
       });
     })
   );
+
+  server.tool(
+    "debug-host",
+    "Send a debug command to the dnclient running on a host. Supports StreamLogs, CreateTunnel, PrintTunnel, PrintCert, QueryLighthouse, and DebugStack. Requires confirm=true to execute; omit confirm or set dryRun=true to preview.",
+    {
+      hostID: z.string().describe("The host ID to debug"),
+      command: z
+        .enum(["StreamLogs", "CreateTunnel", "PrintTunnel", "PrintCert", "QueryLighthouse", "DebugStack"])
+        .describe("Debug command to run on the host"),
+      target: z
+        .string()
+        .optional()
+        .describe("Target IP address required for CreateTunnel, PrintTunnel, PrintCert, and QueryLighthouse"),
+      durationSeconds: z
+        .number()
+        .min(0)
+        .max(600)
+        .optional()
+        .describe("StreamLogs duration in seconds, up to 600"),
+      level: z
+        .enum(["panic", "fatal", "error", "warning", "info", "debug"])
+        .optional()
+        .describe("StreamLogs level"),
+      dryRun: z.boolean().optional().describe("Preview the debug command without running it"),
+      confirm: z.boolean().optional().describe("Must be true to run the debug command"),
+    },
+    async ({ hostID, command, target, durationSeconds, level, dryRun, confirm }) => withToolError("debug-host", async () => {
+      const commandPayload = buildHostDebugCommand(command, {
+        target,
+        durationSeconds,
+        level,
+      });
+
+      if (dryRun || !confirm) {
+        return toolPlan(
+          "debug-host",
+          {
+            action: "run host debug command",
+            resource: { type: "host", id: hostID },
+            would_change: [
+              {
+                type: "debug_command_requested",
+                resource: { type: "host", id: hostID },
+                command,
+              },
+            ],
+            required_confirmation: true,
+          },
+          command === "StreamLogs"
+            ? ["StreamLogs can return newline-delimited log output and may run for the requested duration."]
+            : []
+        );
+      }
+
+      const result = await api.debugHost(hostID, commandPayload);
+      return toolSuccess("debug-host", result, {
+        resource: { type: "host", id: hostID },
+        sideEffects: [{ type: "debug_command_requested", resource: { type: "host", id: hostID }, command }],
+      });
+    })
+  );
+}
+
+function buildHostDebugCommand(
+  command: "StreamLogs" | "CreateTunnel" | "PrintTunnel" | "PrintCert" | "QueryLighthouse" | "DebugStack",
+  args: {
+    target?: string;
+    durationSeconds?: number;
+    level?: "panic" | "fatal" | "error" | "warning" | "info" | "debug";
+  }
+): DNHostCommand {
+  if (command === "StreamLogs") {
+    return {
+      command,
+      args: {
+        durationSeconds: args.durationSeconds ?? 60,
+        level: args.level ?? "info",
+      },
+    };
+  }
+
+  if (command === "DebugStack") {
+    return { command };
+  }
+
+  return {
+    command,
+    args: {
+      target: args.target ?? "",
+    },
+  };
 }

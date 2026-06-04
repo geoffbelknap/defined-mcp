@@ -3,6 +3,11 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { DefinedAPIClient } from "../api-client.js";
 import { toolPlan, toolSuccess, withToolError } from "../mcp-response.js";
 
+const configOverrideSchema = z.object({
+  key: z.string().describe("Nebula config override key"),
+  value: z.unknown().describe("Nebula config override value"),
+});
+
 export function registerEnrollmentTools(
   server: McpServer,
   api: DefinedAPIClient
@@ -49,6 +54,10 @@ export function registerEnrollmentTools(
         .array(z.string())
         .optional()
         .describe("Tags to apply to the host"),
+      configOverrides: z
+        .array(configOverrideSchema)
+        .optional()
+        .describe("Nebula config overrides to apply to the host"),
       dryRun: z.boolean().optional().describe("Preview the host and enrollment-code creation without changing anything"),
       confirm: z.boolean().optional().describe("Must be true to create the host and enrollment code"),
     },
