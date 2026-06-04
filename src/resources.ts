@@ -12,7 +12,7 @@ export function registerResources(server: McpServer, api: DefinedAPIClient) {
         return {
           resources: result.data.map((n) => ({
             uri: `nebula://networks/${n.id}`,
-            name: `${n.name} (${n.cidr})`,
+            name: `${n.name} (${n.cidrs?.join(", ") ?? n.cidr ?? "no CIDR"})`,
             description: `Nebula network: ${n.name}`,
             mimeType: "application/json",
           })),
@@ -46,7 +46,7 @@ export function registerResources(server: McpServer, api: DefinedAPIClient) {
         return {
           resources: result.data.map((h) => ({
             uri: `nebula://hosts/${h.id}`,
-            name: `${h.name} (${h.ipAddress})`,
+            name: `${h.name} (${h.ipAddresses?.join(", ") ?? h.ipAddress ?? "no IP"})`,
             description: `${h.isLighthouse ? "Lighthouse" : h.isRelay ? "Relay" : "Host"}: ${h.name}`,
             mimeType: "application/json",
           })),

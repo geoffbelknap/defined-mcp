@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { DefinedAPIClient } from "../api-client.js";
+import { toolSuccess, withToolError } from "../mcp-response.js";
 
 export function registerDownloadTools(
   server: McpServer,
@@ -9,16 +10,9 @@ export function registerDownloadTools(
     "list-downloads",
     "List available DNClient and Nebula software downloads with version info and download links for all supported platforms (Linux, macOS, Windows, mobile).",
     {},
-    async () => {
+    async () => withToolError("list-downloads", async () => {
       const result = await api.listDownloads();
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
-    }
+      return toolSuccess("list-downloads", result);
+    })
   );
 }

@@ -11,7 +11,11 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsc --watch",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "test": "npm run build && npm run test:ax:dry-run",
+    "test:ax:dry-run": "node scripts/ax-smoke.mjs dry-run",
+    "test:ax:live": "node scripts/ax-smoke.mjs all",
+    "security:audit": "npm audit"
   },
   "repository": {
     "type": "git",
@@ -33,11 +37,11 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/node": "^25.3.3",
+    "@types/node": "^24.0.0",
     "typescript": "^5.9.3"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=24.16.0 <25"
   },
   "files": [
     "dist",
