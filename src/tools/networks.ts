@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { DefinedAPIClient } from "../api-client.js";
+import { toolSuccess, withToolError } from "../mcp-response.js";
 
 export function registerNetworkTools(
   server: McpServer,
@@ -16,17 +17,10 @@ export function registerNetworkTools(
         .optional()
         .describe("Number of results per page (default 25)"),
     },
-    async ({ cursor, pageSize }) => {
+    async ({ cursor, pageSize }) => withToolError("list-networks", async () => {
       const result = await api.listNetworks({ cursor, pageSize });
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
-    }
+      return toolSuccess("list-networks", result);
+    })
   );
 
   server.tool(
@@ -39,16 +33,11 @@ export function registerNetworkTools(
           "The network ID (e.g. network-ABCDEFG1234567890HIJKLMNOP)"
         ),
     },
-    async ({ networkID }) => {
+    async ({ networkID }) => withToolError("get-network", async () => {
       const result = await api.getNetwork(networkID);
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
-    }
+      return toolSuccess("get-network", result, {
+        resource: { type: "network", id: networkID },
+      });
+    })
   );
 }

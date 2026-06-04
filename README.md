@@ -15,40 +15,40 @@ Built for [OpenClaw](https://docs.openclaw.ai/) and any MCP-compatible AI agent 
 **Host Management**
 - `list-hosts` — List hosts with filtering (by network, role, type, status)
 - `get-host` — Get host details
-- `create-host` — Create a new host (lighthouse, relay, or regular)
-- `update-host` — Update host configuration
-- `delete-host` — Remove a host from the network
-- `block-host` — Block a host (revoke network access)
-- `unblock-host` — Restore a blocked host
+- `create-host` — Create a new host (lighthouse, relay, or regular; confirmation required)
+- `update-host` — Update host configuration (confirmation required)
+- `delete-host` — Remove a host from the network (confirmation required)
+- `block-host` — Block a host (revoke network access; confirmation required)
+- `unblock-host` — Restore a blocked host (confirmation required)
 
 **Enrollment**
-- `create-host-and-enrollment-code` — Create a host + enrollment code in one step
-- `create-enrollment-code` — Generate enrollment code for existing host
+- `create-host-and-enrollment-code` — Create a host + enrollment code in one step (confirmation required)
+- `create-enrollment-code` — Generate enrollment code for existing host (confirmation required)
 
 **Roles & Firewall**
 - `list-roles` — List all roles
 - `get-role` — Get role details with firewall rules
-- `create-role` — Create a new role
-- `update-role` — Update role configuration
-- `delete-role` — Remove a role
+- `create-role` — Create a new role (confirmation required)
+- `update-role` — Update role configuration (confirmation required)
+- `delete-role` — Remove a role (confirmation required)
 - `get-firewall-rules` — Get inbound firewall rules for a role
-- `update-firewall-rules` — Replace firewall rules for a role (supports role-based and tag-based rules)
+- `update-firewall-rules` — Replace firewall rules for a role (supports role-based and tag-based rules; confirmation required)
 
 **Tags**
 - `list-tags` — List all tags (key:value pairs for fine-grained access control)
 - `get-tag` — Get tag details
-- `create-tag` — Create a new tag (e.g. `env:production`, `region:us-east`)
-- `update-tag` — Update a tag
-- `delete-tag` — Remove a tag
+- `create-tag` — Create a new tag (e.g. `env:production`, `region:us-east`; confirmation required)
+- `update-tag` — Update a tag (confirmation required)
+- `delete-tag` — Remove a tag (confirmation required)
 
 **Routes (Unsafe Routes)**
 - `list-routes` — List routes extending access to non-overlay subnets
 - `get-route` — Get route details
-- `create-route` — Create a route through a gateway host
-- `delete-route` — Remove a route
+- `create-route` — Create a route through a gateway host (confirmation required)
+- `delete-route` — Remove a route (confirmation required)
 
 **Audit & Compliance**
-- `list-audit-logs` — Search audit logs by actor, action, or target
+- `list-audit-logs` — Search audit logs by target
 
 **Downloads**
 - `list-downloads` — List available DNClient software downloads for all platforms
@@ -70,7 +70,7 @@ Built for [OpenClaw](https://docs.openclaw.ai/) and any MCP-compatible AI agent 
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 24 LTS (`24.16.0` or newer within the Node 24 line)
 - A [Defined Networking](https://admin.defined.net) account with an API key
 
 ### Get an API Key
@@ -163,6 +163,42 @@ Add to your MCP settings:
 | `DEFINED_API_KEY` | Yes | — | Your Defined Networking API key |
 | `DEFINED_API_URL` | No | `https://api.defined.net` | API base URL (for custom deployments) |
 
+## Agent Experience Contract
+
+Tool responses are optimized for MCP clients and LLM agents:
+
+- Successful tools return `structuredContent` with `schema_version`, `ok`, `operation`, `request_id`, `data`, `metadata`, `side_effects`, `warnings`, and `observed_at`.
+- The text response is a JSON-formatted fallback of the same envelope.
+- API errors return classified structured errors with retryability, status code, request ID when available, and suggested next actions.
+- Mutating tools are dry-run by default. Omit `confirm` or set `dryRun: true` to preview the operation. Pass `confirm: true` only after reviewing the planned `would_change` list.
+- Enrollment-code tools are treated as sensitive because live responses can contain credential material.
+
+Example dry-run mutation:
+
+```json
+{
+  "name": "update-firewall-rules",
+  "arguments": {
+    "roleID": "role_123",
+    "firewallRules": [],
+    "dryRun": true
+  }
+}
+```
+
+Example confirmed mutation:
+
+```json
+{
+  "name": "update-firewall-rules",
+  "arguments": {
+    "roleID": "role_123",
+    "firewallRules": [],
+    "confirm": true
+  }
+}
+```
+
 ## Usage Examples
 
 ### Design a Network
@@ -220,6 +256,16 @@ npm run dev    # Watch mode
 npm run build  # Production build
 npm start      # Run the server
 ```
+
+### Tests and Security Checks
+
+```bash
+npm test              # Build and run non-mutating AX dry-run smoke tests
+npm run test:ax:live  # Run read-only live API checks plus dry-run mutation checks
+npm run security:audit
+```
+
+`npm run test:ax:live` requires `DEFINED_API_KEY`. It performs read-only API calls and dry-run mutation checks only; it does not execute confirmed mutations.
 
 ## License
 

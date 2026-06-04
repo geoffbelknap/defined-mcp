@@ -8,6 +8,11 @@ export interface PaginationParams {
 export interface PaginatedResponse<T> {
   data: T[];
   metadata: {
+    hasNextPage?: boolean;
+    hasPrevPage?: boolean;
+    nextCursor?: string;
+    prevCursor?: string;
+    totalCount?: number;
     page: {
       cursor?: string;
       hasNextPage: boolean;
@@ -22,40 +27,53 @@ export interface SingleResponse<T> {
 
 export interface DNNetwork {
   id: string;
+  organizationID?: string;
   name: string;
-  cidr: string;
+  cidr?: string;
+  cidrs?: string[];
   signingCAID: string;
   createdAt: string;
+  description?: string;
+  certVersion?: 1 | 2;
+  lighthousesAsRelays?: boolean;
+  curve?: "25519" | "P256";
   lighthouseCount?: number;
   hostCount?: number;
 }
 
 export interface DNHost {
   id: string;
+  organizationID?: string;
   networkID: string;
-  roleID?: string;
+  roleID?: string | null;
+  endpointOIDCUserID?: string | null;
   name: string;
-  ipAddress: string;
+  ipAddress?: string;
+  ipAddresses?: string[];
   staticAddresses: string[];
   listenPort: number;
   isLighthouse: boolean;
   isRelay: boolean;
   isBlocked: boolean;
   createdAt: string;
+  modifiedAt?: string;
   metadata?: Record<string, unknown>;
   tags?: string[];
+  configOverrides?: ConfigOverride[];
 }
 
 export interface DNHostCreate {
   networkID: string;
-  roleID?: string;
+  roleID?: string | null;
   name: string;
   ipAddress?: string;
+  ipAddresses?: string[];
   staticAddresses?: string[];
   listenPort?: number;
   isLighthouse?: boolean;
   isRelay?: boolean;
   tags?: string[];
+  configOverrides?: ConfigOverride[];
 }
 
 export interface DNRole {
@@ -79,6 +97,8 @@ export interface DNFirewallRule {
   port?: string;
   allowedRoleID?: string;
   allowedTag?: string;
+  allowedTags?: string[];
+  portRange?: { from: number; to: number } | null;
   description?: string;
 }
 
@@ -87,6 +107,8 @@ export interface DNFirewallRuleInput {
   port?: string;
   allowedRoleID?: string;
   allowedTag?: string;
+  allowedTags?: string[];
+  portRange?: { from: number; to: number } | null;
   description?: string;
 }
 
@@ -119,31 +141,55 @@ export interface DNRouteCreate {
 }
 
 export interface DNTag {
-  id: string;
-  key: string;
-  value: string;
+  id?: string;
+  key?: string;
+  value?: string;
+  name?: string;
   description?: string;
-  createdAt: string;
-  modifiedAt: string;
+  configOverrides?: ConfigOverride[];
+  priority?: number;
+  hostCount?: number;
+  routeSubscriptions?: string[];
+  createdAt?: string;
+  modifiedAt?: string;
 }
 
 export interface DNTagCreate {
   key: string;
   value: string;
   description?: string;
+  configOverrides?: ConfigOverride[];
+}
+
+export interface DNTagUpdate {
+  description?: string;
+  configOverrides?: ConfigOverride[];
+  before?: string;
+  after?: string;
+  routeSubscriptions?: string[];
 }
 
 export interface DNAuditLogEntry {
   id: string;
-  actorType: string;
-  actorID: string;
-  actorName: string;
-  action: string;
-  targetType: string;
-  targetID: string;
-  targetName: string;
+  organizationID?: string;
+  timestamp?: string;
+  actorType?: string;
+  actorID?: string;
+  actorName?: string;
+  actor?: Record<string, unknown>;
+  action?: string;
+  targetType?: string;
+  targetID?: string;
+  targetName?: string;
+  target?: Record<string, unknown>;
+  event?: Record<string, unknown>;
   details?: Record<string, unknown>;
-  createdAt: string;
+  createdAt?: string;
+}
+
+export interface ConfigOverride {
+  key: string;
+  value: unknown;
 }
 
 export interface DNDownloads {
@@ -195,9 +241,10 @@ export class DefinedAPIClient {
     method: string,
     path: string,
     body?: unknown,
-    queryParams?: Record<string, string | undefined>
+    queryParams?: Record<string, string | undefined>,
+    apiVersion = 1
   ): Promise<T> {
-    const url = new URL(`/v1${path}`, this.baseUrl);
+    const url = new URL(`/v${apiVersion}${path}`, this.baseUrl);
 
     if (queryParams) {
       for (const [key, value] of Object.entries(queryParams)) {
@@ -260,11 +307,11 @@ export class DefinedAPIClient {
     return this.request("GET", "/networks", undefined, {
       cursor: pagination?.cursor,
       pageSize: pagination?.pageSize?.toString(),
-    });
+    }, 2);
   }
 
   async getNetwork(networkID: string): Promise<SingleResponse<DNNetwork>> {
-    return this.request("GET", `/networks/${encodeURIComponent(networkID)}`);
+    return this.request("GET", `/networks/${encodeURIComponent(networkID)}`, undefined, undefined, 2);
   }
 
   // ─── Hosts ─────────────────────────────────────────────────
@@ -290,22 +337,27 @@ export class DefinedAPIClient {
       ipAddress: params?.ipAddress,
       cursor: params?.cursor,
       pageSize: params?.pageSize?.toString(),
-    });
+    }, 2);
   }
 
   async getHost(hostID: string): Promise<SingleResponse<DNHost>> {
-    return this.request("GET", `/hosts/${encodeURIComponent(hostID)}`);
+    return this.request("GET", `/hosts/${encodeURIComponent(hostID)}`, undefined, undefined, 2);
   }
 
   async createHost(data: DNHostCreate): Promise<SingleResponse<DNHost>> {
-    return this.request("POST", "/hosts", data);
+    const { ipAddress, ...rest } = data;
+    const v2Data = {
+      ...rest,
+      ipAddresses: data.ipAddresses ?? (ipAddress ? [ipAddress] : undefined),
+    };
+    return this.request("POST", "/hosts", v2Data, undefined, 2);
   }
 
   async updateHost(
     hostID: string,
-    data: Partial<Pick<DNHost, "name" | "staticAddresses" | "listenPort" | "roleID" | "tags">>
+    data: Partial<Pick<DNHost, "name" | "staticAddresses" | "listenPort" | "roleID" | "tags" | "configOverrides">>
   ): Promise<SingleResponse<DNHost>> {
-    return this.request("PUT", `/hosts/${encodeURIComponent(hostID)}`, data);
+    return this.request("PUT", `/hosts/${encodeURIComponent(hostID)}`, data, undefined, 3);
   }
 
   async deleteHost(hostID: string): Promise<void> {
@@ -313,11 +365,11 @@ export class DefinedAPIClient {
   }
 
   async blockHost(hostID: string): Promise<SingleResponse<DNHost>> {
-    return this.request("POST", `/hosts/${encodeURIComponent(hostID)}/block`);
+    return this.request("POST", `/hosts/${encodeURIComponent(hostID)}/block`, undefined, undefined, 2);
   }
 
   async unblockHost(hostID: string): Promise<SingleResponse<DNHost>> {
-    return this.request("POST", `/hosts/${encodeURIComponent(hostID)}/unblock`);
+    return this.request("POST", `/hosts/${encodeURIComponent(hostID)}/unblock`, undefined, undefined, 2);
   }
 
   // ─── Enrollment ────────────────────────────────────────────
@@ -325,7 +377,12 @@ export class DefinedAPIClient {
   async createHostAndEnrollCode(
     data: DNHostCreate
   ): Promise<SingleResponse<DNHostAndEnrollCode>> {
-    return this.request("POST", "/host-and-enrollment-code", data);
+    const { ipAddress, ...rest } = data;
+    const v2Data = {
+      ...rest,
+      ipAddresses: data.ipAddresses ?? (ipAddress ? [ipAddress] : undefined),
+    };
+    return this.request("POST", "/host-and-enrollment-code", v2Data, undefined, 2);
   }
 
   async createEnrollmentCode(
@@ -417,11 +474,11 @@ export class DefinedAPIClient {
     return this.request("GET", "/tags", undefined, {
       cursor: pagination?.cursor,
       pageSize: pagination?.pageSize?.toString(),
-    });
+    }, 2);
   }
 
-  async getTag(tagID: string): Promise<SingleResponse<DNTag>> {
-    return this.request("GET", `/tags/${encodeURIComponent(tagID)}`);
+  async getTag(tag: string): Promise<SingleResponse<DNTag>> {
+    return this.request("GET", `/tags/${encodeURIComponent(tag)}`);
   }
 
   async createTag(data: DNTagCreate): Promise<SingleResponse<DNTag>> {
@@ -429,14 +486,14 @@ export class DefinedAPIClient {
   }
 
   async updateTag(
-    tagID: string,
-    data: Partial<DNTagCreate>
+    tag: string,
+    data: DNTagUpdate
   ): Promise<SingleResponse<DNTag>> {
-    return this.request("PUT", `/tags/${encodeURIComponent(tagID)}`, data);
+    return this.request("PUT", `/tags/${encodeURIComponent(tag)}`, data);
   }
 
-  async deleteTag(tagID: string): Promise<void> {
-    await this.request("DELETE", `/tags/${encodeURIComponent(tagID)}`);
+  async deleteTag(tag: string): Promise<void> {
+    await this.request("DELETE", `/tags/${encodeURIComponent(tag)}`);
   }
 
   // ─── Audit Logs ────────────────────────────────────────────
@@ -449,9 +506,7 @@ export class DefinedAPIClient {
       targetID?: string;
     } & PaginationParams
   ): Promise<PaginatedResponse<DNAuditLogEntry>> {
-    return this.request("GET", "/audit-log", undefined, {
-      actorType: params?.actorType,
-      action: params?.action,
+    return this.request("GET", "/audit-logs", undefined, {
       targetType: params?.targetType,
       targetID: params?.targetID,
       cursor: params?.cursor,
