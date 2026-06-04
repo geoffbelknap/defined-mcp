@@ -4,76 +4,28 @@ An MCP (Model Context Protocol) server that enables AI agents to design, build, 
 
 Built for [OpenClaw](https://docs.openclaw.ai/) and any MCP-compatible AI agent platform (Claude, VS Code, etc.).
 
-## Features
+## What This Does
 
-### Tools (34 operations)
+Use this server to let an agent inspect and manage Defined Networking / Managed Nebula infrastructure without hand-writing API calls. It supports common workflows such as:
 
-**Network Management**
-- `list-networks` — List all Nebula overlay networks
-- `get-network` — Get detailed network information
-- `update-network` — Update network name, description, and lighthouse relay behavior (confirmation required)
-- `delete-network` — Delete an empty network (confirmation required)
-- `add-network-cidr` — Add an IPv4 CIDR to an IPv6-only network (confirmation required)
+- designing a Nebula network topology
+- provisioning hosts and enrollment codes
+- managing roles, firewall rules, tags, routes, and network settings
+- auditing configuration and administrative activity
+- troubleshooting host connectivity and dnclient state
 
-**Host Management**
-- `list-hosts` — List hosts with filtering (by network, role, type, status)
-- `get-host` — Get host details
-- `create-host` — Create a new host (lighthouse, relay, or regular; confirmation required)
-- `update-host` — Update host configuration (confirmation required)
-- `delete-host` — Remove a host from the network (confirmation required)
-- `block-host` — Block a host (revoke network access; confirmation required)
-- `unblock-host` — Restore a blocked host (confirmation required)
-- `debug-host` — Send host debug commands such as log streaming, tunnel inspection, certificate inspection, lighthouse queries, and stack traces (confirmation required)
+Mutating operations are safe by default: agents get a dry-run plan unless they explicitly pass `confirm: true`.
 
-**Enrollment**
-- `create-host-and-enrollment-code` — Create a host + enrollment code in one step (confirmation required)
-- `create-enrollment-code` — Generate enrollment code for existing host (confirmation required)
+## Quick Start
 
-**Roles & Firewall**
-- `list-roles` — List all roles
-- `get-role` — Get role details with firewall rules
-- `create-role` — Create a new role (confirmation required)
-- `update-role` — Update role configuration (confirmation required)
-- `delete-role` — Remove a role (confirmation required)
-- `get-firewall-rules` — Get inbound firewall rules for a role
-- `update-firewall-rules` — Replace firewall rules for a role (supports role-based and tag-based rules; confirmation required)
+```bash
+nvm use
+npm install
+npm run build
+DEFINED_API_KEY="dnkey_..." npm run test:ax:live
+```
 
-**Tags**
-- `list-tags` — List all tags (key:value pairs for fine-grained access control)
-- `get-tag` — Get tag details
-- `create-tag` — Create a new tag (e.g. `env:production`, `region:us-east`; confirmation required)
-- `update-tag` — Update a tag (confirmation required)
-- `delete-tag` — Remove a tag (confirmation required)
-
-**Routes (Unsafe Routes)**
-- `list-routes` — List routes extending access to non-overlay subnets
-- `get-route` — Get route details
-- `create-route` — Create a route through a gateway host (confirmation required)
-- `update-route` — Update route name, router host, routable CIDRs, and firewall rules (confirmation required)
-- `delete-route` — Remove a route (confirmation required)
-
-**Audit & Compliance**
-- `list-audit-logs` — Search audit logs by target
-
-**Downloads**
-- `list-downloads` — List available DNClient software downloads for all platforms
-
-### Resources
-
-- `nebula://networks/{networkID}` — Network configuration data
-- `nebula://hosts/{hostID}` — Host configuration data
-- `nebula://roles/{roleID}` — Role and firewall rule data
-
-### Prompts
-
-- `design-network` — Interactive network topology design
-- `provision-host` — Step-by-step host provisioning guide
-- `audit-security` — Security posture audit
-- `troubleshoot-connectivity` — Debug connectivity between hosts
-
-### API Coverage
-
-The MCP targets the current non-deprecated Defined Networking API surface from the official OpenAPI description, including hosts, roles, routes, tags, audit logs, networks, and downloads. Deprecated v1 endpoints are intentionally omitted when a current replacement exists.
+`test:ax:live` checks the MCP server against the live Defined API with read-only calls and dry-run mutation plans. It does not execute confirmed mutations.
 
 ## Setup
 
@@ -100,13 +52,13 @@ This repo includes `.nvmrc` and `.node-version` set to Node `24.16.0`. npm also 
    - `routes:create`, `routes:read`, `routes:delete` — Manage routes
    - `auditLogs:list` — View audit logs
 
-### Install
+### Install From npm
 
 ```bash
 npm install @defined-net/mcp-server
 ```
 
-Or clone and build:
+### Clone and Build
 
 ```bash
 git clone https://github.com/geoffbelknap/defined-mcp.git
@@ -114,17 +66,6 @@ cd defined-mcp
 npm install
 npm run build
 ```
-
-### Quick Start
-
-```bash
-nvm use
-npm install
-npm run build
-DEFINED_API_KEY="dnkey_..." npm run test:ax:live
-```
-
-`test:ax:live` checks the MCP server against the live Defined API with read-only calls and dry-run mutation plans. It does not execute confirmed mutations.
 
 ### Configure for Claude Desktop
 
@@ -264,6 +205,75 @@ Example confirmed mutation:
   }
 }
 ```
+
+## Capabilities
+
+The MCP targets the current non-deprecated Defined Networking API surface from the official OpenAPI description, including hosts, roles, routes, tags, audit logs, networks, and downloads. Deprecated v1 endpoints are intentionally omitted when a current replacement exists.
+
+### Tools
+
+**Network Management**
+- `list-networks` — List all Nebula overlay networks
+- `get-network` — Get detailed network information
+- `update-network` — Update network name, description, and lighthouse relay behavior (confirmation required)
+- `delete-network` — Delete an empty network (confirmation required)
+- `add-network-cidr` — Add an IPv4 CIDR to an IPv6-only network (confirmation required)
+
+**Host Management**
+- `list-hosts` — List hosts with filtering (by network, role, type, status)
+- `get-host` — Get host details
+- `create-host` — Create a new host (lighthouse, relay, or regular; confirmation required)
+- `update-host` — Update host configuration (confirmation required)
+- `delete-host` — Remove a host from the network (confirmation required)
+- `block-host` — Block a host (revoke network access; confirmation required)
+- `unblock-host` — Restore a blocked host (confirmation required)
+- `debug-host` — Send host debug commands such as log streaming, tunnel inspection, certificate inspection, lighthouse queries, and stack traces (confirmation required)
+
+**Enrollment**
+- `create-host-and-enrollment-code` — Create a host + enrollment code in one step (confirmation required)
+- `create-enrollment-code` — Generate enrollment code for existing host (confirmation required)
+
+**Roles & Firewall**
+- `list-roles` — List all roles
+- `get-role` — Get role details with firewall rules
+- `create-role` — Create a new role (confirmation required)
+- `update-role` — Update role configuration (confirmation required)
+- `delete-role` — Remove a role (confirmation required)
+- `get-firewall-rules` — Get inbound firewall rules for a role
+- `update-firewall-rules` — Replace firewall rules for a role (supports role-based and tag-based rules; confirmation required)
+
+**Tags**
+- `list-tags` — List all tags (key:value pairs for fine-grained access control)
+- `get-tag` — Get tag details
+- `create-tag` — Create a new tag (e.g. `env:production`, `region:us-east`; confirmation required)
+- `update-tag` — Update a tag (confirmation required)
+- `delete-tag` — Remove a tag (confirmation required)
+
+**Routes (Unsafe Routes)**
+- `list-routes` — List routes extending access to non-overlay subnets
+- `get-route` — Get route details
+- `create-route` — Create a route through a gateway host (confirmation required)
+- `update-route` — Update route name, router host, routable CIDRs, and firewall rules (confirmation required)
+- `delete-route` — Remove a route (confirmation required)
+
+**Audit & Compliance**
+- `list-audit-logs` — Search audit logs by target
+
+**Downloads**
+- `list-downloads` — List available DNClient software downloads for all platforms
+
+### Resources
+
+- `nebula://networks/{networkID}` — Network configuration data
+- `nebula://hosts/{hostID}` — Host configuration data
+- `nebula://roles/{roleID}` — Role and firewall rule data
+
+### Prompts
+
+- `design-network` — Interactive network topology design
+- `provision-host` — Step-by-step host provisioning guide
+- `audit-security` — Security posture audit
+- `troubleshoot-connectivity` — Debug connectivity between hosts
 
 ## Usage Examples
 
